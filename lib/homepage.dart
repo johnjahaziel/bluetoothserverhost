@@ -119,6 +119,9 @@ class _HomePageState extends State<HomePage> {
       }
       if (endWithZero && _running && _connected) {
         await _sendZeroRaw(); // raw 0 as per your ask
+        if (mounted) {
+          setState(() => selectedNumber = 0);  // <-- show 0 in the UI
+        }
       }
     } finally {
       _isBurstActive = false;
@@ -271,18 +274,18 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             if (selectedNumber != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  selectedNumber.toString(),
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 60,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                selectedNumber.toString(),
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 60,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+            ),
             Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 5),
@@ -299,7 +302,6 @@ class _HomePageState extends State<HomePage> {
                             return SizedBox(width: buttonWidth);
                           }
                           final val = allNumbers[index];
-                          final isSelected = selectedNumber == val;
 
                           return number(
                             val,
