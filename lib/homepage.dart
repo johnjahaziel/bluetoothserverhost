@@ -318,7 +318,6 @@ class _HomePageState extends State<HomePage> {
                               await _burstSendNumber(val); // sends val x5, then "0"
                             },
                             buttonWidth,
-                            isSelected,
                           );
                         }),
                       ),
@@ -357,28 +356,25 @@ class _HomePageState extends State<HomePage> {
   }
 
   // label is derived from num; `onPressed` already checks canSend
-  Widget number(num value, VoidCallback onPressed, double width, bool isSelected) {
+  Widget number(num value, VoidCallback onPressed, double width) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5),
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
+      child: RawMaterialButton(
+        onPressed: onPressed,
+        constraints: BoxConstraints.tightFor(
           width: width,
-          height: 55,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? const Color.fromARGB(255, 0, 150, 50)
-                : const Color.fromARGB(255, 80, 80, 80),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            value.toString(),
-            style: const TextStyle(
-              fontSize: 22,
-              fontFamily: 'Poppins',
-              color: Colors.white,
-            ),
+          height: 60,
+        ),
+        fillColor: const Color.fromARGB(255, 80, 80, 80),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          value.toString(),
+          style: const TextStyle(
+            fontSize: 22,
+            fontFamily: 'Poppins',
+            color: Colors.white,
           ),
         ),
       ),
