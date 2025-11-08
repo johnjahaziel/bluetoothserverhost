@@ -1,5 +1,6 @@
 import 'package:btserverhost/Userprovider.dart';
 import 'package:btserverhost/homepage.dart';
+import 'package:btserverhost/loginnumber.dart';
 import 'package:btserverhost/loginpassword.dart';
 import 'package:btserverhost/pinpage.dart';
 import 'package:flutter/material.dart';
@@ -48,6 +49,11 @@ class AuthWrapper extends StatelessWidget {
     return loginTime != null;
   }
 
+  Future<bool> _hasPhone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('phone') != null && prefs.getString('phone')!.isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
@@ -59,20 +65,37 @@ class AuthWrapper extends StatelessWidget {
           );
         } else {
           if (snapshot.hasData && snapshot.data == true) {
-            // PIN verified already → go to login/auth check
+            // FIRST: check phone presence
             return FutureBuilder<bool>(
-              future: _isLoggedIn(),
-              builder: (context, loginSnapshot) {
-                if (loginSnapshot.connectionState == ConnectionState.waiting) {
+              future: _hasPhone(),
+              builder: (context, phoneSnapshot) {
+                if (phoneSnapshot.connectionState == ConnectionState.waiting) {
                   return const Scaffold(
                     body: Center(child: CircularProgressIndicator()),
                   );
                 } else {
-                  if (loginSnapshot.hasData && loginSnapshot.data == true) {
-                    return const HomePage();
-                  } else {
-                    return const Loginpassword();
+                  if (phoneSnapshot.data == false) {
+                    // phone not saved → go to LoginNumber
+                    return const Loginnumber();
                   }
+
+                  // phone exists → now check login status
+                  return FutureBuilder<bool>(
+                    future: _isLoggedIn(),
+                    builder: (context, loginSnapshot) {
+                      if (loginSnapshot.connectionState == ConnectionState.waiting) {
+                        return const Scaffold(
+                          body: Center(child: CircularProgressIndicator()),
+                        );
+                      } else {
+                        if (loginSnapshot.data == true) {
+                          return const HomePage();
+                        } else {
+                          return const Loginpassword();
+                        }
+                      }
+                    },
+                  );
                 }
               },
             );
