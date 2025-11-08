@@ -1,9 +1,15 @@
+// ignore_for_file: unused_field
+
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
+
+import 'package:btserverhost/loginpassword.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,10 +20,16 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   static const _ch = MethodChannel('bt_server');
   static const _ev = EventChannel('bt_server_stream');
+
+  String _format3(num v) => v.toStringAsFixed(3);
+
   StreamSubscription? _sub;
   bool _running = false;
-  String _log = '';
   bool _connected = false; // best-effort flag based on incoming events
+  String _log = '';
+
+  num? selectedNumber; // <-- defined
+  String _status = '';  // optional UI status if you want to show it later
 
   Future<void> _start() async {
     final perms = await [
@@ -40,15 +52,11 @@ class _HomePageState extends State<HomePage> {
 
       await _sub?.cancel();
       _sub = _ev.receiveBroadcastStream().listen((e) {
-        // Native side sends both data and logs as bytes; try to decode as UTF-8 text.
         if (e is Uint8List) {
           final text = utf8.decode(e, allowMalformed: true);
-          // Heuristic: mark connected if native log mentions it.
           if (text.contains('Client connected')) _connected = true;
           if (text.contains('Client disconnected')) _connected = false;
-          setState(() => _log = text.startsWith('RX:')
-              ? text
-              : 'RX: $text');
+          setState(() => _log = text.startsWith('RX:') ? text : 'RX: $text');
         } else {
           setState(() => _log = 'RX: $e');
         }
@@ -64,7 +72,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _stop() async {
-    await _ch.invokeMethod('stop');
+    try {
+      await _ch.invokeMethod('stop');
+    } catch (_) {}
     await _sub?.cancel();
     setState(() {
       _running = false;
@@ -74,13 +84,49 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _send(String text) async {
-    // Add newline so it shows nicely in Serial Bluetooth Terminal.
     final payload = Uint8List.fromList(utf8.encode('$text\n'));
     final ok = await _ch.invokeMethod<bool>('send', {'data': payload}) ?? false;
     if (!ok) {
       setState(() => _log = 'Send failed (not connected yet?).');
     } else {
       setState(() => _log = 'TX: $text');
+    }
+  }
+
+  // Convenience: send any number
+  Future<void> _sendNumber(num value) => _send(_format3(value));
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('login_time');
+
+    final url = Uri.parse('https://app1.1bluetooth.com/api.php?action=logoutnew');
+
+    try {
+      final phone = prefs.getString('phone'); // <-- no await
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'phone': phone}),
+      );
+
+      if (response.statusCode == 200) {
+
+        _stop();
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        Fluttertoast.showToast(msg: responseData['message']);
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const Loginpassword()),
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        debugPrint('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint("Error: $e");
     }
   }
 
@@ -92,59 +138,209 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final canSend = _running && _connected; // enable only when a client is connected
+    final allNumbers = <num>[
+      0, 0.5, 1, 1.5, 2, 2.5,
+      3, 3.5, 4, 4.5, 5, 6,
+      7, 8, 9, 10, 11, 12,
+      13, 14, 15, 16, 17, 18,
+      19, 20, 25, 30, 35, 40,
+    ];
 
-    return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 320),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Start/Stop row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(160, 48)),
-                    onPressed: _start,
-                    child: const Text('Start server'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(120, 48)),
-                    onPressed: _stop,
-                    child: const Text('Stop'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final buttonWidth = (screenWidth - 75) / 5;
 
-              // Number pad: 1 2 3 4
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  for (final n in ['1', '2', '3', '4'])
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(minimumSize: const Size(64, 48)),
-                      onPressed: canSend ? () => _send(n) : null,
-                      child: Text(n, style: const TextStyle(fontSize: 18)),
-                    ),
-                ],
-              ),
+    final canSend = _running && _connected;
 
-              const SizedBox(height: 16),
-              Text(
-                canSend ? 'Connected. Tap a number to send.' : (_running ? 'Waiting for client…' : 'Idle.'),
-                style: const TextStyle(fontWeight: FontWeight.w600),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Exit App"),
+            content: const Text("Do you want to disconnect and exit?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
               ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(_log, textAlign: TextAlign.center),
+              TextButton(
+                onPressed: () {
+                  _stop(); // <-- actually call it
+                  Navigator.pop(context, true);
+                },
+                child: const Text("Exit"),
               ),
             ],
+          ),
+        );
+
+        if (shouldExit == true) {
+          _stop();
+          Future.delayed(const Duration(milliseconds: 200), () {
+            SystemNavigator.pop();
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color.fromARGB(255, 50, 50, 50),
+        appBar: AppBar(
+          title: Row(
+            children: [
+              RawMaterialButton(
+                onPressed: _connected ? _stop : _start,
+                fillColor: _connected ? Colors.red : Colors.green,
+                constraints: const BoxConstraints.tightFor(height: 35),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 15),
+                  child: Text(
+                    _connected ? 'Stop Server' : 'Start Server',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (_running)
+                Text(
+                  _connected ? 'Connected' : 'Waiting…',
+                  style: TextStyle(
+                    color: _connected ? Colors.green : Colors.orange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 20),
+              child: RawMaterialButton(
+                onPressed: _logout,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(2),
+                  side: const BorderSide(color: Colors.black),
+                ),
+                child: const Text('Logout'),
+              ),
+            ),
+          ],
+        ),
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (selectedNumber != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  selectedNumber.toString(),
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 60,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Column(
+                children: [
+                  for (int row = 0; row < (allNumbers.length / 5).ceil(); row++)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (i) {
+                          final index = row * 5 + i;
+                          if (index >= allNumbers.length) {
+                            return SizedBox(width: buttonWidth);
+                          }
+                          final val = allNumbers[index];
+                          final isSelected = selectedNumber == val;
+
+                          return number(
+                            val,
+                            () async {
+                              setState(() => selectedNumber = val);
+                              if (!canSend) {
+                                Fluttertoast.showToast(
+                                  msg: 'Not connected yet.',
+                                );
+                                return;
+                              }
+                              await _sendNumber(val);
+                            },
+                            buttonWidth,
+                            isSelected,
+                          );
+                        }),
+                      ),
+                    ),
+                  const SizedBox(height: 2),
+                ],
+              ),
+            ),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: RawMaterialButton(
+                onPressed: () {
+                  setState(() {
+                    selectedNumber = null;
+                    _status = "Selection cleared.";
+                  });
+                },
+                fillColor: Colors.green,
+                constraints: const BoxConstraints.tightFor(
+                  height: 50, width: double.infinity),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Text(
+                  'Clear',
+                  style: TextStyle(fontFamily: 'Poppins', fontSize: 22),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // label is derived from num; `onPressed` already checks canSend
+  Widget number(num value, VoidCallback onPressed, double width, bool isSelected) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          width: width,
+          height: 55,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color.fromARGB(255, 0, 150, 50)
+                : const Color.fromARGB(255, 80, 80, 80),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            value.toString(),
+            style: const TextStyle(
+              fontSize: 22,
+              fontFamily: 'Poppins',
+              color: Colors.white,
+            ),
           ),
         ),
       ),
