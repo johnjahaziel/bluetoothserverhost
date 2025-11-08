@@ -28,6 +28,8 @@ class _HomePageState extends State<HomePage> {
   bool _connected = false; // best-effort flag based on incoming events
   String _log = '';
 
+  bool _isBurstActive = false;
+
   num? selectedNumber; // <-- defined
   String _status = '';  // optional UI status if you want to show it later
 
@@ -96,6 +98,33 @@ class _HomePageState extends State<HomePage> {
   // Convenience: send any number
   Future<void> _sendNumber(num value) => _send(_format3(value));
 
+  Future<void> _sendZeroRaw() => _send('0');
+
+  /// Send `value` N times with a short gap, then send "0".
+  Future<void> _burstSendNumber(
+    num value, {
+    int times = 5,
+    Duration gap = const Duration(milliseconds: 300),
+    bool endWithZero = true,
+  }) async {
+    if (_isBurstActive) return;
+    _isBurstActive = true;
+    try {
+      for (var i = 0; i < times; i++) {
+        if (!_running || !_connected) break; // stop if disconnected mid-burst
+        await _sendNumber(value);
+        if (i < times - 1) {
+          await Future.delayed(gap);
+        }
+      }
+      if (endWithZero && _running && _connected) {
+        await _sendZeroRaw(); // raw 0 as per your ask
+      }
+    } finally {
+      _isBurstActive = false;
+    }
+  }
+
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('login_time');
@@ -155,8 +184,6 @@ class _HomePageState extends State<HomePage> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final buttonWidth = (screenWidth - 75) / 5;
-
-    final canSend = _running && _connected;
 
     return PopScope(
       canPop: false,
@@ -277,14 +304,18 @@ class _HomePageState extends State<HomePage> {
                           return number(
                             val,
                             () async {
+                              // if a burst is ongoing, ignore taps
+                              if (_isBurstActive) return;
+
                               setState(() => selectedNumber = val);
-                              if (!canSend) {
-                                Fluttertoast.showToast(
-                                  msg: 'Not connected yet.',
-                                );
+
+                              // Re-check connection state at tap time
+                              if (!(_running && _connected)) {
+                                Fluttertoast.showToast(msg: 'Not connected yet.');
                                 return;
                               }
-                              await _sendNumber(val);
+
+                              await _burstSendNumber(val); // sends val x5, then "0"
                             },
                             buttonWidth,
                             isSelected,
