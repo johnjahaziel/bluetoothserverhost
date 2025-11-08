@@ -1,19 +1,34 @@
+import 'package:btserverhost/Userprovider.dart';
 import 'package:btserverhost/homepage.dart';
 import 'package:btserverhost/loginpassword.dart';
 import 'package:btserverhost/pinpage.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() => runApp(
-  const MyApp()
-);
+Future<void> main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getString('userId') ?? '';
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => UserProvider()..setUserid(userId)
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: HomePage(),
+      home: AuthWrapper(),
       debugShowCheckedModeBanner: false,
     );
   }

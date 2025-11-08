@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     try {
-      final ok = await _ch.invokeMethod<bool>('start', {'seconds': 300}) ?? false;
+      final ok = await _ch.invokeMethod<bool>('start', {'seconds': 10800}) ?? false;
       if (!ok) {
         setState(() => _log = 'Failed to start server.');
         return;
@@ -64,7 +64,7 @@ class _HomePageState extends State<HomePage> {
 
       setState(() {
         _running = true;
-        _log = 'Server started for 5 minutes. Open Serial Bluetooth Terminal and connect.';
+        _log = 'Server started';
       });
     } on PlatformException catch (e) {
       setState(() => _log = 'Error: ${e.message}');
@@ -131,7 +131,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void initState() {
+    _start();
+    super.initState();
+  }
+
+  @override
   void dispose() {
+    _stop();
     _sub?.cancel();
     super.dispose();
   }
@@ -188,25 +195,25 @@ class _HomePageState extends State<HomePage> {
         appBar: AppBar(
           title: Row(
             children: [
-              RawMaterialButton(
-                onPressed: _connected ? _stop : _start,
-                fillColor: _connected ? Colors.red : Colors.green,
-                constraints: const BoxConstraints.tightFor(height: 35),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 15),
-                  child: Text(
-                    _connected ? 'Stop Server' : 'Start Server',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 14,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
+              // RawMaterialButton(
+              //   onPressed: _running ? _stop : _start,
+              //   fillColor: _running ? Colors.red : Colors.green,
+              //   constraints: const BoxConstraints.tightFor(height: 35),
+              //   shape: RoundedRectangleBorder(
+              //     borderRadius: BorderRadius.circular(10),
+              //   ),
+              //   child: Padding(
+              //     padding: EdgeInsets.symmetric(horizontal: 15),
+              //     child: Text(
+              //       _running ? 'Stop Server' : 'Start Server',
+              //       style: TextStyle(
+              //         fontFamily: 'Poppins',
+              //         fontSize: 14,
+              //         color: Colors.white,
+              //       ),
+              //     ),
+              //   ),
+              // ),
               const SizedBox(width: 12),
               if (_running)
                 Text(

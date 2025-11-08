@@ -44,7 +44,7 @@ class MainActivity: FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD).setMethodCallHandler { call, result ->
             when (call.method) {
                 "start" -> {
-                    val secs = (call.argument<Int>("seconds") ?: 300).coerceIn(5, 3600)
+                    val secs = (call.argument<Int>("seconds") ?: 10800).coerceIn(5, 10800)
                     val ok = startServerFor(secs)
                     result.success(ok)
                 }
