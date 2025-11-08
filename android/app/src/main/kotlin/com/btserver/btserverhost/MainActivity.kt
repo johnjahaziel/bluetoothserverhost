@@ -72,7 +72,7 @@ class MainActivity: FlutterActivity() {
 
         // Request discoverable
         val disc = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, seconds)
+            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
         }
         startActivity(disc)
 
