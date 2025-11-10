@@ -227,8 +227,8 @@ class _HomePageState extends State<HomePage> {
                   _connected ? 'Connected' : 'Waiting…',
                   style: TextStyle(
                     color: _connected ? Colors.green : Colors.orange,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
             ],
@@ -311,7 +311,9 @@ class _HomePageState extends State<HomePage> {
                     _status = "Selection cleared.";
                   });
                 },
-                fillColor: Colors.green,
+                // fillColor: Colors.green,                                                              //green
+                fillColor: Colors.yellow,                                                              //yellow
+                // fillColor: Color.fromARGB(255, 106, 188, 255),                                       //blue
                 constraints: const BoxConstraints.tightFor(
                   height: 50, width: double.infinity),
                 shape: RoundedRectangleBorder(
@@ -319,7 +321,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 child: const Text(
                   'Clear',
-                  style: TextStyle(fontFamily: 'Poppins', fontSize: 22),
+                  style: TextStyle(fontFamily: 'Poppins', fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
