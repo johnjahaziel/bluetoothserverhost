@@ -22,7 +22,7 @@ class _LoginnumberState extends State<Loginnumber> {
   List<dynamic> user = [];
 
   Future<void> login() async {
-    final url = Uri.parse('https://app1.1bluetooth.com/api.php?action=phone_loging_statusnew');
+    final url = Uri.parse('https://app2.1bluetooth.com/api.php?action=phone_loging_statusnew');
 
     if (_numberController.text.isEmpty) {
       Fluttertoast.showToast(msg: "Please enter mobile number");

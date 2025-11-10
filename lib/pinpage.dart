@@ -27,7 +27,7 @@ class _PinpageState extends State<Pinpage> {
   }
 
   Future<void> _fetchPins() async {
-    final url = Uri.parse("https://app1.1bluetooth.com/api.php?action=get_pinsnew");
+    final url = Uri.parse("https://app2.1bluetooth.com/api.php?action=get_pinsnew");
     final response = await http.get(url);
     
     if (response.statusCode == 200) {

@@ -26,7 +26,7 @@ class _LoginpasswordState extends State<Loginpassword> {
   List<dynamic> user = [];
 
   Future<void> login() async {
-    final url = Uri.parse('https://app1.1bluetooth.com/api.php?action=user_simple_loginnew');
+    final url = Uri.parse('https://app2.1bluetooth.com/api.php?action=user_simple_loginnew');
 
     if (_passwordController.text.isEmpty) {
       Fluttertoast.showToast(msg: "Please enter password");

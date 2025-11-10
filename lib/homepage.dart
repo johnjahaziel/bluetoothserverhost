@@ -106,7 +106,7 @@ class _HomePageState extends State<HomePage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('login_time');
 
-    final url = Uri.parse('https://app1.1bluetooth.com/api.php?action=logoutnew');
+    final url = Uri.parse('https://app2.1bluetooth.com/api.php?action=logoutnew');
 
     try {
       final phone = prefs.getString('phone'); // <-- no await
