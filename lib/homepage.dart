@@ -37,6 +37,50 @@ class _HomePageState extends State<HomePage> {
   num? selectedNumber; // <-- defined
   String _status = '';  // optional UI status if you want to show it later
 
+  Timer? logoutTimer;
+  Timer? timer;
+  int secondsRemaining = 10800;
+  String timerText = '03:00:00';
+
+  Future<void> _checkSessionValidity() async {
+    final prefs = await SharedPreferences.getInstance();
+    final loginTime = prefs.getInt('login_time');
+
+    if (loginTime == null) {
+      _logout();
+      return;
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final diffInSeconds = (now - loginTime) ~/ 1000;
+
+    if (diffInSeconds >= 10800) {
+      _logout();
+    } else {
+      secondsRemaining = 10800 - diffInSeconds;
+      _startTimer();
+      logoutTimer ??= Timer(Duration(seconds: secondsRemaining), _logout);
+    }
+  }
+
+  void _startTimer() {
+    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (secondsRemaining > 0) {
+        setState(() {
+          secondsRemaining--;
+          int hours = secondsRemaining ~/ 3600;
+          int minutes = (secondsRemaining % 3600) ~/ 60;
+          int seconds = secondsRemaining % 60;
+          timerText =
+              '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+        });
+      } else {
+        timer.cancel();
+        _logout();
+      }
+    });
+  }
+
   Future<void> _start() async {
     final perms = await [
       Permission.bluetooth,
@@ -139,6 +183,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     _start();
+    _checkSessionValidity();
     super.initState();
   }
 
@@ -231,6 +276,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 child: Text(
                   _connected ? 'Connected' : 'Waiting…',
+                  // timerText,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
