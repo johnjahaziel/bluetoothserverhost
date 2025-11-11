@@ -221,16 +221,23 @@ class _HomePageState extends State<HomePage> {
               //     ),
               //   ),
               // ),
-              const SizedBox(width: 12),
+              // const SizedBox(width: 12),
               if (_running)
-                Text(
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _connected ? Colors.green : Colors.orange,
+                  borderRadius: BorderRadius.circular(5)
+                ),
+                child: Text(
                   _connected ? 'Connected' : 'Waiting…',
                   style: TextStyle(
-                    color: _connected ? Colors.green : Colors.orange,
-                    fontSize: 18,
+                    color: Colors.white,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+              ),
             ],
           ),
           actions: [
@@ -279,6 +286,7 @@ class _HomePageState extends State<HomePage> {
                             return SizedBox(width: buttonWidth);
                           }
                           final val = allNumbers[index];
+                          final isSelected = selectedNumber == val;
 
                           return number(
                             val,
@@ -293,6 +301,7 @@ class _HomePageState extends State<HomePage> {
                               await _sendNumber(val);
                             },
                             buttonWidth,
+                            isSelected
                           );
                         }),
                       ),
@@ -312,7 +321,7 @@ class _HomePageState extends State<HomePage> {
                   });
                 },
                 // fillColor: Colors.green,                                                              //green
-                // fillColor: Colors.yellow,                                                              //yellow
+                // fillColor: Colors.yellow,                                                            //yellow
                 fillColor: Color.fromARGB(255, 106, 188, 255),                                       //blue
                 constraints: const BoxConstraints.tightFor(
                   height: 50, width: double.infinity),
@@ -321,11 +330,11 @@ class _HomePageState extends State<HomePage> {
                 ),
                 child: const Text(
                   'Clear',
-                  style: TextStyle(fontFamily: 'Poppins', fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontFamily: 'Poppins', fontSize: 22,),
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -333,7 +342,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // label is derived from num; `onPressed` already checks canSend
-  Widget number(num value, VoidCallback onPressed, double width) {
+  Widget number(num value, VoidCallback onPressed, double width, bool isSelected) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5),
       child: RawMaterialButton(
@@ -342,7 +351,9 @@ class _HomePageState extends State<HomePage> {
           width: width,
           height: 60,
         ),
-        fillColor: const Color.fromARGB(255, 80, 80, 80),
+        // fillColor: isSelected ? const Color.fromARGB(255, 0, 150, 50) : const Color.fromARGB(255, 80, 80, 80),                //green
+        fillColor: isSelected ? const Color.fromARGB(255, 106, 188, 255) : const Color.fromARGB(255, 80, 80, 80),                //blue
+        // fillColor: isSelected ? Colors.yellow : const Color.fromARGB(255, 80, 80, 80),                                          //yellow
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
